@@ -5,9 +5,9 @@
 
 **About me**
 - 👀 I am a Software Engineer, Real Estate Investor, Foodie
-- 💻  I’m currently learning JavaScript and Python
-- 💞️ I’m looking to collaborate on future software and hardware projects and talk about real estate and personal finance
-- 📫 How to reach me: http://linkedin.com/in/yufliu/
+- 💻  I’m currently continuing to improve my technical skills 
+- 💞️ I’m looking to collaborate on future software and hardware projects as well as talk about real estate and personal finance
+- 📫 How to reach me: My socials below, most active on LinkedIn
 - 🥘 Follow my food page: https://www.instagram.com/yumilyeats/
 
 **Socials**
