@@ -16,10 +16,6 @@
 [<img src="https://github.com/yufliu/yufliu/blob/main/master/socials/twitter.svg" height="40em" align="center" alt="Follow Raym0111 on Twitter" title="Follow Yu on Twitter"/>](https://twitter.com/yufliu)
 [<img src="https://github.com/yufliu/yufliu/blob/main/master/socials/instagram.svg" height="40em" align="center" alt="Follow Raymo111 on Instagram" title="Follow Yu on Instagram"/>](https://instagram.com/yu_creates)
 
-<a href="https://twitter.com/yufliu">
-  <img align="right" alt="Yu Liu | Twitter" width="21px" src="https://raw.githubusercontent.com/anuraghazra/anuraghazra/master/assets/twitter.svg" />
-</a>
-
 
 **Programming Experience**
     <a href="https://github.com/search?q=user%3ADenverCoder1+language%3Apython"><img alt="Python" src="https://img.shields.io/badge/Python-14354C.svg?logo=python&logoColor=white"></a>
