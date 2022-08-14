@@ -33,6 +33,11 @@
         <a href="https://github.com/search?q=user%3ADenverCoder1+language%3Ajavascript"><img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-F7DF1E.svg?logo=javascript&logoColor=black"></a>
     <a href="https://github.com/search?q=user%3ADenverCoder1+language%3Apython"><img alt="Python" src="https://img.shields.io/badge/Python-14354C.svg?logo=python&logoColor=white"></a>
 
+<!-- Inspiration -->
+<!-- https://github.com/abhisheknaiidu/awesome-github-profile-readme -->
+<!-- https://github.com/DenverCoder1/DenverCoder1/blob/main/README.md
+https://github.com/Raymo111/Raymo111/blob/master/README.md
+ -->
 
     
 <!-- <code><img height="20" alt="javascript" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/javascript/javascript.png"></code>
