@@ -12,8 +12,8 @@
 
 **Socials**
 
-[<img src="https://github.com/yufliu/yufliu/tree/main/master/socials" height="40em" align="center" alt="Follow Raymo111 on LinkedIn" title="Follow Yu on LinkedIn"/>](https://linkedin.com/in/yufliu)
-[<img src="https://raw.githubusercontent.com/yufliu/yufliu/master/socials/twitter.svg" height="40em" align="center" alt="Follow Raym0111 on Twitter" title="Follow Yu on Twitter"/>](https://twitter.com/yufliu)
+[<img src="https://github.com/yufliu/yufliu/blob/main/master/socials/linkedin.png" height="40em" align="center" alt="Follow Raymo111 on LinkedIn" title="Follow Yu on LinkedIn"/>](https://linkedin.com/in/yufliu)
+[<img src="https://github.com/yufliu/yufliu/blob/main/master/socials/twitter.svg" height="40em" align="center" alt="Follow Raym0111 on Twitter" title="Follow Yu on Twitter"/>](https://twitter.com/yufliu)
 [<img src="https://github.com/yufliu/yufliu/blob/main/master/socials/instagram.svg" height="40em" align="center" alt="Follow Raymo111 on Instagram" title="Follow Yu on Instagram"/>](https://instagram.com/yu_creates)
 
 <a href="https://twitter.com/yufliu">
