@@ -4,9 +4,9 @@
 </h3>
 
 <!-- Typing SVG by DenverCoder1 - https://github.com/DenverCoder1/readme-typing-svg -->
-<p align="center">
-![visitors]<a href="https://readme-typing-svg.herokuapp.com/?lines=Welcome!;I am a Software Engineer 💻 ; Real Estate Investor 🏠 ; Foodie 🍱 ; Lifelong Learner 📚 )](https://git.io/typing-svg)"></a>
-</p>
+
+<a href="https://readme-typing-svg.herokuapp.com/?lines=Welcome!;I am a Software Engineer 💻 ; Real Estate Investor 🏠 ; Foodie 🍱 ; Lifelong Learner 📚 )](https://git.io/typing-svg)"></a>
+
 
 **About me**
 - 👀 I am a Software Engineer 💻 , Real Estate Investor 🏠 , Foodie 🍱 
