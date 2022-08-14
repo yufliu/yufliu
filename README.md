@@ -5,8 +5,8 @@
 
 **About me**
 - 👀 I am a Software Engineer 💻 , Real Estate Investor 🏠 , Foodie 🍱 
-- 💻  I’m currently continuing to improve my technical skills 
-- 💞️ I’m looking to collaborate on future software and hardware projects as well as learn and talk about real estate and personal finance
+- 💻 I’m currently continuing to improve my technical skills 
+- 💬 Talk to me about software, real estate, personal finance, self improvement, and travel
 - 📫 How to reach me: My socials below, most active on LinkedIn
 - 🥘 Follow my food page: https://www.instagram.com/yumilyeats/
 
