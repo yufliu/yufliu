@@ -1,0 +1,13 @@
+{
+  "217cactusmtr": {
+    "name": "217 Cactus MTR",
+    "url": "https://airbnb.com/h/217cactusmtr",
+    "targets": {
+      "monthly": {
+        "min": 5500,
+        "max": 7000,
+        "note": "after tax and fees"
+      }
+    }
+  }
+}
