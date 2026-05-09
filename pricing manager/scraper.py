@@ -35,6 +35,7 @@ class PriceBreakdown:
     nights: int
     line_items: list[tuple[str, float]] = field(default_factory=list)
     final_url: str = ""
+    total_qualifier: str = ""  # e.g. "before taxes" if the listing total excludes taxes
 
 
 class ScrapeError(RuntimeError):
@@ -77,7 +78,10 @@ def fetch_price_breakdown(
 
         def on_response(response):
             url = response.url
-            if "StaysPdpSections" not in url and "PdpStays" not in url:
+            # Capture any Airbnb GraphQL response — the price-bearing operation
+            # name varies (StaysPdpSections, StayCheckoutQuickPay, etc.) and we
+            # filter for the right shape later.
+            if "/api/v3/" not in url and "/api/v2/" not in url:
                 return
             try:
                 body = response.json()
@@ -99,7 +103,9 @@ def fetch_price_breakdown(
                 )
             except Exception:
                 pass
-            page.wait_for_timeout(3_000)
+            # Long-stay queries (30+ nights) sometimes fire the price call
+            # later than short stays; wait a bit longer for it.
+            page.wait_for_timeout(6_000)
 
             html = page.content()
         finally:
@@ -145,11 +151,15 @@ def _build_target_url(listing_url: str, checkin: date, checkout: date) -> str:
 
 
 def _walk_for_price(state: Any, nights: int) -> PriceBreakdown:
-    """Search GraphQL response for a structured price breakdown.
+    """Find a price breakdown in an Airbnb GraphQL response.
 
-    Modern shape: a section has `structuredDisplayPrice` with a `priceBreakdown`
-    object containing `priceItems[]`. Older shape: `priceItems` directly on the
-    section.
+    Modern shape (2025+):
+      structuredDisplayPrice.explanationData.priceDetails[].items[]
+      where each item has description / priceString / accessibilityLabel.
+      Total is identified by `accessibilityLabel` containing "total"
+      (e.g. "$1,370.72 total before taxes").
+    Falls back to structuredDisplayPrice.primaryLine.discountedPrice
+    when no explicit total line is present.
     """
     candidates: list[dict[str, Any]] = []
 
@@ -157,11 +167,11 @@ def _walk_for_price(state: Any, nights: int) -> PriceBreakdown:
         if isinstance(node, dict):
             sdp = node.get("structuredDisplayPrice")
             if isinstance(sdp, dict):
-                pb = sdp.get("priceBreakdown") or sdp.get("explanationData")
-                if isinstance(pb, dict) and pb.get("priceItems"):
-                    candidates.append(pb)
-            if isinstance(node.get("priceItems"), list):
-                candidates.append(node)
+                ed = sdp.get("explanationData")
+                if isinstance(ed, dict) and ed.get("priceDetails"):
+                    candidates.append(sdp)
+                elif sdp.get("primaryLine"):
+                    candidates.append(sdp)
             for v in node.values():
                 visit(v)
         elif isinstance(node, list):
@@ -170,38 +180,63 @@ def _walk_for_price(state: Any, nights: int) -> PriceBreakdown:
 
     visit(state)
 
-    for node in candidates:
-        items = node.get("priceItems") or []
-        if not items:
+    for sdp in candidates:
+        try:
+            return _build_breakdown(sdp, nights)
+        except ScrapeError:
             continue
-        line_items: list[tuple[str, float]] = []
-        total: float | None = None
-        currency = "USD"
-        for it in items:
-            label = (it.get("description") or it.get("title") or "").strip()
-            price_str = (
-                it.get("priceString")
-                or (it.get("total") or {}).get("amountFormatted")
-                or (it.get("amount") or {}).get("amountFormatted")
-                or ""
-            ).strip()
-            amount = _parse_amount(price_str)
-            currency = _parse_currency(price_str) or currency
-            it_type = (it.get("type") or "").upper()
-            if it_type in ("TOTAL", "TOTAL_DEFAULT") or label.lower().startswith("total"):
-                if amount is not None:
-                    total = amount
-            else:
-                if amount is not None:
-                    line_items.append((label or "(unlabeled)", amount))
-        if total is None and line_items:
-            total = sum(a for _, a in line_items)
-        if total is not None:
-            return PriceBreakdown(
-                total=total, currency=currency, nights=nights, line_items=line_items,
-            )
 
-    raise ScrapeError("No structured price breakdown in GraphQL response")
+    raise ScrapeError("No structuredDisplayPrice with a usable total found")
+
+
+def _build_breakdown(sdp: dict[str, Any], nights: int) -> PriceBreakdown:
+    line_items: list[tuple[str, float]] = []
+    total: float | None = None
+    total_qualifier = ""
+    currency = "USD"
+
+    pd = ((sdp.get("explanationData") or {}).get("priceDetails")) or []
+    for group in pd:
+        for item in group.get("items") or []:
+            price_str = (item.get("priceString") or "").strip()
+            if not price_str:
+                continue
+            amount = _parse_amount(price_str)
+            if amount is None:
+                continue
+            if price_str.lstrip().startswith("-"):
+                amount = -abs(amount)
+            currency = _parse_currency(price_str) or currency
+            desc = (item.get("description") or "").strip()
+            acc = (item.get("accessibilityLabel") or "").strip()
+            acc_lower = acc.lower()
+            if total is None and "total" in acc_lower:
+                total = amount
+                # Pull qualifier text after "total" — e.g. "before taxes"
+                m = re.search(r"total\s+(.+)$", acc_lower)
+                total_qualifier = m.group(1).strip() if m else ""
+                continue
+            if not desc:
+                desc = "Discount" if amount < 0 else "(unlabeled)"
+            line_items.append((desc, amount))
+
+    if total is None:
+        primary = sdp.get("primaryLine") or {}
+        for key in ("discountedPrice", "price", "originalPrice"):
+            v = primary.get(key)
+            parsed = _parse_amount(v) if v else None
+            if parsed is not None:
+                total = parsed
+                currency = _parse_currency(v) or currency
+                break
+
+    if total is None:
+        raise ScrapeError("structuredDisplayPrice present but no total resolved")
+
+    return PriceBreakdown(
+        total=total, currency=currency, nights=nights, line_items=line_items,
+        total_qualifier=total_qualifier,
+    )
 
 
 _TOTAL_DOM_RE = re.compile(

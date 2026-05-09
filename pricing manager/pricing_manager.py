@@ -122,7 +122,8 @@ def print_breakdown(span: str, nights: int, checkin: date, checkout: date,
     header = f"== {span.upper()} ({nights} nights: {checkin} -> {checkout}) =="
     print(header)
     nightly_avg = breakdown.total / nights if nights else 0
-    print(f"  Total: ${breakdown.total:,.2f} {breakdown.currency}")
+    qualifier = f" ({breakdown.total_qualifier})" if breakdown.total_qualifier else ""
+    print(f"  Total{qualifier}: ${breakdown.total:,.2f} {breakdown.currency}")
     print(f"  Nightly average: ${nightly_avg:,.2f}")
     if breakdown.line_items:
         print("  Breakdown:")
