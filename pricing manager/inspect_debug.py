@@ -1,8 +1,9 @@
-"""Inspect a debug_*.html file Airbnb returned to figure out where the price
-breakdown actually lives, so we can fix the parser in scraper.py.
+"""Inspect a debug_*.html or debug_*.graphql.json dump to figure out where
+the price breakdown actually lives, so we can fix the parser in scraper.py.
 
 Usage:
     python inspect_debug.py debug_monthly.html
+    python inspect_debug.py debug_monthly.html.graphql.json
 """
 
 from __future__ import annotations
@@ -13,7 +14,10 @@ import sys
 from pathlib import Path
 
 
-def extract_state(html: str):
+def load_state(path: Path):
+    if path.suffix == ".json":
+        return json.loads(path.read_text())
+    html = path.read_text()
     for pattern in (
         r'<script[^>]+id="data-deferred-state-0"[^>]*>(.*?)</script>',
         r'<script[^>]+id="data-deferred-state"[^>]*>(.*?)</script>',
@@ -76,27 +80,32 @@ def find_section_types(node, found=None):
 
 def main():
     if len(sys.argv) != 2:
-        raise SystemExit("usage: python inspect_debug.py <debug_*.html>")
-    html = Path(sys.argv[1]).read_text()
-    print(f"# inspecting {sys.argv[1]} ({len(html):,} chars)")
-    state = extract_state(html)
+        raise SystemExit("usage: python inspect_debug.py <debug_*.html or .graphql.json>")
+    path = Path(sys.argv[1])
+    print(f"# inspecting {path} ({path.stat().st_size:,} bytes)")
+    state = load_state(path)
 
-    print("\n## top-level keys")
-    if isinstance(state, dict):
-        for k in list(state.keys())[:30]:
-            print(f"  - {k}")
+    # If it's a list of {url, body}, inspect each captured response separately.
+    entries = state if isinstance(state, list) else [{"url": "(deferred-state)", "body": state}]
+    for i, entry in enumerate(entries):
+        print(f"\n=== response #{i}: {entry.get('url', '')} ===")
+        body = entry.get("body", entry) if isinstance(entry, dict) else entry
 
-    print("\n## section / typename markers found")
-    for s in sorted(find_section_types(state)):
-        print(f"  - {s}")
+        if isinstance(body, dict):
+            print("## top-level keys")
+            for k in list(body.keys())[:30]:
+                print(f"  - {k}")
 
-    print("\n## price/availability hits (first 80)")
-    hits = walk(state)
-    for path, v in hits:
-        print(f"  {path}\n    {v}")
+        print("\n## section / typename markers")
+        for s in sorted(find_section_types(body)):
+            print(f"  - {s}")
 
-    if not hits:
-        print("  (none — likely an availability/error page, not a price page)")
+        print("\n## price/availability hits (first 80)")
+        hits = walk(body)
+        for hp, v in hits:
+            print(f"  {hp}\n    {v}")
+        if not hits:
+            print("  (none — page returned without price data)")
 
 
 if __name__ == "__main__":
