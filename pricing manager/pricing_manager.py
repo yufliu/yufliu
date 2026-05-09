@@ -1,17 +1,18 @@
 """Pricing manager CLI.
 
 Usage:
-    python pricing_manager.py <listing-or-address> <checkin-date>
+    python pricing_manager.py <listing-or-address> [checkin-date]
 
 Examples:
+    python pricing_manager.py "217 cactus"               # check-in = today
     python pricing_manager.py 217cactusmtr 1/12/2026
-    python pricing_manager.py "217 cactus" 1/12/2026
-    python pricing_manager.py "cactus tallahassee" 1/12/2026
+    python pricing_manager.py "cactus tallahassee" 2026-01-12
 
-For each input date, fetches the price the guest pays for a 7-night,
-30-night, and 90-night stay starting on that date, prints the line-item
-breakdown, and warns if the total is more than 10% outside the configured
-target range for that listing+span.
+If no check-in date is given, today's date is used. For each input date,
+fetches the price the guest pays for a 7-night, 30-night, and 90-night
+stay starting on that date, prints the line-item breakdown, and warns if
+the total is more than 10% outside the configured target range for that
+listing+span.
 """
 
 from __future__ import annotations
@@ -171,13 +172,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Listing key (e.g. 217cactusmtr) OR an address-ish query "
              "(e.g. \"217 cactus\", \"cactus tallahassee\").",
     )
-    p.add_argument("checkin", help="Check-in date, e.g. 1/12/2026 or 2026-01-12")
+    p.add_argument(
+        "checkin",
+        nargs="?",
+        default=None,
+        help="Check-in date, e.g. 1/12/2026 or 2026-01-12. Defaults to today.",
+    )
     p.add_argument(
         "--debug-dump", action="store_true",
         help="Save raw HTML responses to debug_<span>.html for inspection.",
     )
     args = p.parse_args(argv)
-    return run(args.listing, parse_date(args.checkin), debug_dump=args.debug_dump)
+    checkin = parse_date(args.checkin) if args.checkin else date.today()
+    return run(args.listing, checkin, debug_dump=args.debug_dump)
 
 
 if __name__ == "__main__":
