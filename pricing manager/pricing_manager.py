@@ -133,7 +133,7 @@ def print_breakdown(span: str, nights: int, checkin: date, checkout: date,
     print()
 
 
-def run(query: str, checkin: date, *, debug_dump: bool) -> int:
+def run(query: str, checkin: date, *, debug_dump: bool, headless: bool) -> int:
     listings = load_listings()
     try:
         listing_key = resolve_listing(query, listings)
@@ -152,8 +152,11 @@ def run(query: str, checkin: date, *, debug_dump: bool) -> int:
         checkout = checkin + timedelta(days=nights)
         dump = f"debug_{span_name}.html" if debug_dump else None
         try:
-            br = fetch_price_breakdown(listing["url"], checkin, checkout, debug_dump_path=dump)
-        except (ScrapeError, Exception) as e:
+            br = fetch_price_breakdown(
+                listing["url"], checkin, checkout,
+                debug_dump_path=dump, headless=headless,
+            )
+        except ScrapeError as e:
             print(f"== {span_name.upper()} ({nights} nights) ==")
             print(f"  ERROR: {e}\n")
             any_warn = True
@@ -180,11 +183,21 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--debug-dump", action="store_true",
-        help="Save raw HTML responses to debug_<span>.html for inspection.",
+        help="Save rendered HTML and intercepted GraphQL JSON to "
+             "debug_<span>.html and debug_<span>.html.graphql.json.",
+    )
+    p.add_argument(
+        "--show-browser", action="store_true",
+        help="Run Playwright with the browser visible (helpful when Cloudflare "
+             "blocks headless).",
     )
     args = p.parse_args(argv)
     checkin = parse_date(args.checkin) if args.checkin else date.today()
-    return run(args.listing, checkin, debug_dump=args.debug_dump)
+    return run(
+        args.listing, checkin,
+        debug_dump=args.debug_dump,
+        headless=not args.show_browser,
+    )
 
 
 if __name__ == "__main__":
