@@ -27,10 +27,10 @@ from pathlib import Path
 
 from scraper import PriceBreakdown, ScrapeError, fetch_price_breakdown
 
-SPANS: list[tuple[str, int]] = [
-    ("weekly", 7),
-    ("monthly", 30),
-    ("3-month", 90),
+SPANS: list[tuple[str, int, str]] = [
+    ("weekly", 7, "Weekly total"),
+    ("monthly", 30, "Monthly total"),
+    ("3-month", 90, "3-month total"),
 ]
 OFF_TARGET_TOLERANCE = 0.10  # 10%
 
@@ -117,13 +117,18 @@ def evaluate_target(span: str, breakdown: PriceBreakdown, listing_cfg: dict) -> 
     return TargetCheck("ok", f"within {base_target} (±10%)")
 
 
-def print_breakdown(span: str, nights: int, checkin: date, checkout: date,
+def print_breakdown(span: str, total_label: str, nights: int,
+                    checkin: date, checkout: date,
                     breakdown: PriceBreakdown, target: TargetCheck) -> None:
-    header = f"== {span.upper()} ({nights} nights: {checkin} -> {checkout}) =="
-    print(header)
+    print(f"== {span.upper()} ({nights} nights: {checkin} -> {checkout}) ==")
     nightly_avg = breakdown.total / nights if nights else 0
     qualifier = f" ({breakdown.total_qualifier})" if breakdown.total_qualifier else ""
-    print(f"  Total{qualifier}: ${breakdown.total:,.2f} {breakdown.currency}")
+    print(f"  {total_label}{qualifier}: ${breakdown.total:,.2f} {breakdown.currency}")
+    if breakdown.total_before_taxes is not None:
+        print(f"    before taxes: ${breakdown.total_before_taxes:,.2f}")
+    if nights >= 30:
+        per_month = breakdown.total / (nights / 30)
+        print(f"  Per-month average: ${per_month:,.2f}")
     print(f"  Nightly average: ${nightly_avg:,.2f}")
     if breakdown.line_items:
         print("  Breakdown:")
@@ -149,7 +154,7 @@ def run(query: str, checkin: date, *, debug_dump: bool, headless: bool) -> int:
     print(f"Check-in: {checkin}\n")
 
     any_warn = False
-    for span_name, nights in SPANS:
+    for span_name, nights, total_label in SPANS:
         checkout = checkin + timedelta(days=nights)
         dump = f"debug_{span_name}.html" if debug_dump else None
         try:
@@ -165,7 +170,7 @@ def run(query: str, checkin: date, *, debug_dump: bool, headless: bool) -> int:
         target = evaluate_target(span_name, br, listing)
         if target.status in ("low", "high"):
             any_warn = True
-        print_breakdown(span_name, nights, checkin, checkout, br, target)
+        print_breakdown(span_name, total_label, nights, checkin, checkout, br, target)
     return 1 if any_warn else 0
 
 

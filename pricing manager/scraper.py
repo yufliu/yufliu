@@ -30,12 +30,13 @@ USER_AGENT = (
 
 @dataclass
 class PriceBreakdown:
-    total: float
+    total: float                              # primary total — after taxes if we got the checkout, else before
     currency: str
     nights: int
     line_items: list[tuple[str, float]] = field(default_factory=list)
     final_url: str = ""
-    total_qualifier: str = ""  # e.g. "before taxes" if the listing total excludes taxes
+    total_qualifier: str = ""                 # e.g. "before taxes" when it excludes taxes
+    total_before_taxes: float | None = None   # set when both listing + checkout were captured
 
 
 class ScrapeError(RuntimeError):
@@ -64,8 +65,11 @@ def fetch_price_breakdown(
             "  playwright install chromium"
         ) from e
 
-    captured: list[dict[str, Any]] = []
+    captured_listing: list[dict[str, Any]] = []
+    captured_checkout: list[dict[str, Any]] = []
+    phase = ["listing"]
     final_url = ""
+    html = ""
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
@@ -78,21 +82,20 @@ def fetch_price_breakdown(
 
         def on_response(response):
             url = response.url
-            # Capture any Airbnb GraphQL response — the price-bearing operation
-            # name varies (StaysPdpSections, StayCheckoutQuickPay, etc.) and we
-            # filter for the right shape later.
             if "/api/v3/" not in url and "/api/v2/" not in url:
                 return
             try:
                 body = response.json()
             except Exception:
                 return
-            captured.append({"url": url, "body": body})
+            bucket = captured_checkout if phase[0] == "checkout" else captured_listing
+            bucket.append({"url": url, "body": body})
 
         page.on("response", on_response)
 
         target = _build_target_url(listing_url, checkin, checkout)
         try:
+            # Phase 1: listing page — gives us before-tax pricing
             page.goto(target, wait_until="domcontentloaded", timeout=timeout_ms)
             final_url = page.url
             try:
@@ -103,9 +106,24 @@ def fetch_price_breakdown(
                 )
             except Exception:
                 pass
-            # Long-stay queries (30+ nights) sometimes fire the price call
-            # later than short stays; wait a bit longer for it.
             page.wait_for_timeout(6_000)
+
+            # Phase 2: checkout flow — gives us after-tax pricing
+            m = re.search(r"/rooms/(?:plus/)?(\d+)", final_url)
+            if m:
+                phase[0] = "checkout"
+                listing_id = m.group(1)
+                book_url = (
+                    f"https://www.airbnb.com/book/stays/{listing_id}"
+                    f"?numberOfAdults=1"
+                    f"&checkin={checkin.isoformat()}"
+                    f"&checkout={checkout.isoformat()}"
+                )
+                try:
+                    page.goto(book_url, wait_until="domcontentloaded", timeout=timeout_ms)
+                    page.wait_for_timeout(8_000)
+                except Exception:
+                    pass
 
             html = page.content()
         finally:
@@ -114,28 +132,51 @@ def fetch_price_breakdown(
     if debug_dump_path:
         Path(debug_dump_path).write_text(html)
         Path(debug_dump_path + ".graphql.json").write_text(
-            json.dumps(captured, indent=2, default=str)
+            json.dumps(
+                {"listing": captured_listing, "checkout": captured_checkout},
+                indent=2, default=str,
+            )
         )
 
-    for entry in captured:
-        try:
-            br = _walk_for_price(entry["body"], nights)
-            br.final_url = final_url or target
-            return br
-        except ScrapeError:
-            continue
+    listing_br = _first_match(captured_listing, nights)
+    checkout_br = _first_match(captured_checkout, nights)
+
+    if checkout_br is not None:
+        if listing_br is not None and abs(listing_br.total - checkout_br.total) > 0.01:
+            checkout_br.total_before_taxes = listing_br.total
+        checkout_br.total_qualifier = ""
+        checkout_br.final_url = final_url or target
+        return checkout_br
+
+    if listing_br is not None:
+        listing_br.final_url = final_url or target
+        return listing_br
 
     try:
         br = _scrape_dom(html, nights)
         br.final_url = final_url or target
         return br
     except ScrapeError as e:
+        captured_total = len(captured_listing) + len(captured_checkout)
         msg = str(e)
-        if captured:
-            msg += f" (captured {len(captured)} GraphQL responses, none had prices)"
+        if captured_total:
+            msg += (
+                f" (captured {len(captured_listing)} listing + "
+                f"{len(captured_checkout)} checkout GraphQL responses, "
+                f"none had prices)"
+            )
         else:
-            msg += " (no StaysPdpSections GraphQL response was captured)"
+            msg += " (no GraphQL responses captured)"
         raise ScrapeError(msg) from None
+
+
+def _first_match(entries: list[dict[str, Any]], nights: int) -> PriceBreakdown | None:
+    for entry in entries:
+        try:
+            return _walk_for_price(entry["body"], nights)
+        except ScrapeError:
+            continue
+    return None
 
 
 def _build_target_url(listing_url: str, checkin: date, checkout: date) -> str:
