@@ -19,12 +19,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from notifier import SpanResult, build_message, send as send_slack
 from scraper import PriceBreakdown, ScrapeError, fetch_price_breakdown
 
 SPANS: list[tuple[str, int, str]] = [
@@ -139,7 +141,8 @@ def print_breakdown(span: str, total_label: str, nights: int,
     print()
 
 
-def run(query: str, checkin: date, *, debug_dump: bool, headless: bool) -> int:
+def run(query: str, checkin: date, *, debug_dump: bool, headless: bool,
+        slack_webhook: str | None, notify_mode: str) -> int:
     listings = load_listings()
     try:
         listing_key = resolve_listing(query, listings)
@@ -154,6 +157,7 @@ def run(query: str, checkin: date, *, debug_dump: bool, headless: bool) -> int:
     print(f"Check-in: {checkin}\n")
 
     any_warn = False
+    results: list[SpanResult] = []
     for span_name, nights, total_label in SPANS:
         checkout = checkin + timedelta(days=nights)
         dump = f"debug_{span_name}.html" if debug_dump else None
@@ -166,12 +170,53 @@ def run(query: str, checkin: date, *, debug_dump: bool, headless: bool) -> int:
             print(f"== {span_name.upper()} ({nights} nights) ==")
             print(f"  ERROR: {e}\n")
             any_warn = True
+            results.append(SpanResult(
+                span=span_name, nights=nights, total=None, currency="USD",
+                status="error", target_message="", error=str(e),
+            ))
             continue
         target = evaluate_target(span_name, br, listing)
         if target.status in ("low", "high"):
             any_warn = True
         print_breakdown(span_name, total_label, nights, checkin, checkout, br, target)
+        results.append(SpanResult(
+            span=span_name, nights=nights, total=br.total, currency=br.currency,
+            status=target.status, target_message=target.message,
+            total_qualifier=br.total_qualifier,
+            total_before_taxes=br.total_before_taxes,
+        ))
+
+    _maybe_notify(
+        listing, listing_key, checkin, results, any_warn,
+        webhook_url=slack_webhook, mode=notify_mode,
+    )
     return 1 if any_warn else 0
+
+
+def _maybe_notify(listing: dict, listing_key: str, checkin: date,
+                  results: list[SpanResult], any_warn: bool, *,
+                  webhook_url: str | None, mode: str) -> None:
+    if mode == "off":
+        return
+    if mode == "warn-only" and not any_warn:
+        return
+    if not webhook_url:
+        if mode != "auto":
+            print("(slack webhook not configured; skipping notification)",
+                  file=sys.stderr)
+        return
+    payload = build_message(
+        listing_name=listing["name"],
+        listing_address=listing.get("address", ""),
+        listing_url=listing["url"],
+        checkin=checkin.isoformat(),
+        results=results,
+    )
+    try:
+        send_slack(webhook_url, payload)
+        print(f"(slack notified — {'WARN' if any_warn else 'OK'})", file=sys.stderr)
+    except Exception as e:
+        print(f"(slack notify failed: {e})", file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -197,12 +242,30 @@ def main(argv: list[str] | None = None) -> int:
         help="Run Playwright with the browser visible (helpful when Cloudflare "
              "blocks headless).",
     )
+    p.add_argument(
+        "--slack-webhook", default=None,
+        help="Slack incoming webhook URL. Falls back to $SLACK_WEBHOOK_URL.",
+    )
+    notify = p.add_mutually_exclusive_group()
+    notify.add_argument(
+        "--always-notify", dest="notify_mode", action="store_const",
+        const="always",
+        help="Send a Slack message every run (default sends only on warnings).",
+    )
+    notify.add_argument(
+        "--no-notify", dest="notify_mode", action="store_const", const="off",
+        help="Skip the Slack notification even if a webhook is configured.",
+    )
+    p.set_defaults(notify_mode="warn-only")
     args = p.parse_args(argv)
     checkin = parse_date(args.checkin) if args.checkin else date.today()
+    webhook = args.slack_webhook or os.environ.get("SLACK_WEBHOOK_URL")
     return run(
         args.listing, checkin,
         debug_dump=args.debug_dump,
         headless=not args.show_browser,
+        slack_webhook=webhook,
+        notify_mode=args.notify_mode,
     )
 
 
