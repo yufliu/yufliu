@@ -1,0 +1,63 @@
+name: Pricing check
+
+on:
+  schedule:
+    # 13:00 UTC daily — 9am EDT / 8am EST.
+    # Note: scheduled workflows only fire on the default branch.
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      listing:
+        description: 'Listing key or address-ish query'
+        default: '217 cactus'
+        required: false
+      checkin:
+        description: 'Check-in date (M/D/YYYY). Leave blank for today.'
+        required: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: 'pricing manager'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: 'pricing manager/requirements.txt'
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-v1
+
+      - name: Install Playwright Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: playwright install-deps chromium
+
+      - name: Run pricing check
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          LISTING: ${{ github.event.inputs.listing || '217 cactus' }}
+          CHECKIN: ${{ github.event.inputs.checkin }}
+        run: |
+          if [ -n "$CHECKIN" ]; then
+            python pricing_manager.py "$LISTING" "$CHECKIN" --always-notify
+          else
+            python pricing_manager.py "$LISTING" --always-notify
+          fi
