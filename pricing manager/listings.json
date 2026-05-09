@@ -1,7 +1,9 @@
 {
   "217cactusmtr": {
     "name": "217 Cactus MTR",
+    "address": "217 Cactus St, Tallahassee, FL 32304",
     "url": "https://airbnb.com/h/217cactusmtr",
+    "aliases": [],
     "targets": {
       "monthly": {
         "min": 5500,

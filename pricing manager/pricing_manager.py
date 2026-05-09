@@ -1,10 +1,12 @@
 """Pricing manager CLI.
 
 Usage:
-    python pricing_manager.py <listing-key> <checkin-date>
+    python pricing_manager.py <listing-or-address> <checkin-date>
 
-Example:
+Examples:
     python pricing_manager.py 217cactusmtr 1/12/2026
+    python pricing_manager.py "217 cactus" 1/12/2026
+    python pricing_manager.py "cactus tallahassee" 1/12/2026
 
 For each input date, fetches the price the guest pays for a 7-night,
 30-night, and 90-night stay starting on that date, prints the line-item
@@ -16,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -54,6 +57,48 @@ def load_listings() -> dict:
     return json.loads(CONFIG_PATH.read_text())
 
 
+def _tokenize(s: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", (s or "").lower())
+
+
+def _searchable_text(key: str, listing: dict) -> str:
+    parts = [key, listing.get("name", ""), listing.get("address", "")]
+    parts.extend(listing.get("aliases", []) or [])
+    return " ".join(p for p in parts if p)
+
+
+def resolve_listing(query: str, listings: dict) -> str:
+    """Resolve an address-ish query to a listing key.
+
+    First tries an exact key match, then a fuzzy token-subset match across
+    each listing's key, name, address, and aliases. Raises LookupError if
+    zero or >1 listings match.
+    """
+    if query in listings:
+        return query
+    q_tokens = set(_tokenize(query))
+    if not q_tokens:
+        raise LookupError(f"Empty query: {query!r}")
+    matches: list[tuple[str, int]] = []
+    for key, listing in listings.items():
+        cand_tokens = set(_tokenize(_searchable_text(key, listing)))
+        if q_tokens.issubset(cand_tokens):
+            matches.append((key, len(q_tokens)))
+    if len(matches) == 1:
+        return matches[0][0]
+    if not matches:
+        configured = ", ".join(f"{k} ({v.get('address', 'no address')})"
+                               for k, v in listings.items())
+        raise LookupError(
+            f"No listing matches {query!r}. Configured: {configured}"
+        )
+    keys = [m[0] for m in matches]
+    raise LookupError(
+        f"{query!r} is ambiguous; matches: {keys}. "
+        "Add more tokens or use the listing key."
+    )
+
+
 def evaluate_target(span: str, breakdown: PriceBreakdown, listing_cfg: dict) -> TargetCheck:
     target = (listing_cfg.get("targets") or {}).get(span)
     if not target:
@@ -87,14 +132,18 @@ def print_breakdown(span: str, nights: int, checkin: date, checkout: date,
     print()
 
 
-def run(listing_key: str, checkin: date, *, debug_dump: bool) -> int:
+def run(query: str, checkin: date, *, debug_dump: bool) -> int:
     listings = load_listings()
-    if listing_key not in listings:
-        print(f"Unknown listing key: {listing_key}", file=sys.stderr)
-        print(f"Configured listings: {', '.join(listings) or '(none)'}", file=sys.stderr)
+    try:
+        listing_key = resolve_listing(query, listings)
+    except LookupError as e:
+        print(str(e), file=sys.stderr)
         return 2
     listing = listings[listing_key]
-    print(f"Listing: {listing['name']}  ({listing['url']})")
+    print(f"Listing: {listing['name']} [{listing_key}]")
+    if listing.get("address"):
+        print(f"Address: {listing['address']}")
+    print(f"URL: {listing['url']}")
     print(f"Check-in: {checkin}\n")
 
     any_warn = False
@@ -117,7 +166,11 @@ def run(listing_key: str, checkin: date, *, debug_dump: bool) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="STR/MTR pricing manager")
-    p.add_argument("listing", help="Listing key from listings.json (e.g. 217cactusmtr)")
+    p.add_argument(
+        "listing",
+        help="Listing key (e.g. 217cactusmtr) OR an address-ish query "
+             "(e.g. \"217 cactus\", \"cactus tallahassee\").",
+    )
     p.add_argument("checkin", help="Check-in date, e.g. 1/12/2026 or 2026-01-12")
     p.add_argument(
         "--debug-dump", action="store_true",
