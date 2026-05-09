@@ -29,19 +29,18 @@ class SpanResult:
     total_before_taxes: float | None = None
 
 
-def build_message(listing_name: str, listing_address: str, listing_url: str,
-                  checkin: str, results: list[SpanResult]) -> dict:
-    has_warn = any(r.status in ("low", "high") for r in results)
-    has_error = any(r.status == "error" for r in results)
-    prefix = "[ALERT] " if has_warn else ("[ERROR] " if has_error else "")
-    header = f"{prefix}{listing_name} — check-in {checkin}"
+@dataclass
+class ListingReport:
+    name: str
+    address: str
+    url: str
+    checkin: str
+    results: list[SpanResult]
 
-    lines = []
-    if listing_address:
-        lines.append(listing_address)
-    lines.append(f"<{listing_url}|listing>")
-    lines.append("")
-    for r in results:
+
+def _format_results(r_list: list[SpanResult]) -> list[str]:
+    lines: list[str] = []
+    for r in r_list:
         if r.status == "error":
             lines.append(f"• *{r.span}* ({r.nights}n): ERROR — {r.error}")
             continue
@@ -52,6 +51,23 @@ def build_message(listing_name: str, listing_address: str, listing_url: str,
         if r.total_before_taxes is not None:
             line += f"  _(before taxes: ${r.total_before_taxes:,.2f})_"
         lines.append(line)
+    return lines
+
+
+def build_message(listing_name: str, listing_address: str, listing_url: str,
+                  checkin: str, results: list[SpanResult]) -> dict:
+    """Single-listing summary message. Kept for back-compat / single-run callers."""
+    has_warn = any(r.status in ("low", "high") for r in results)
+    has_error = any(r.status == "error" for r in results)
+    prefix = "[ALERT] " if has_warn else ("[ERROR] " if has_error else "")
+    header = f"{prefix}{listing_name} — check-in {checkin}"
+
+    lines: list[str] = []
+    if listing_address:
+        lines.append(listing_address)
+    lines.append(f"<{listing_url}|listing>")
+    lines.append("")
+    lines.extend(_format_results(results))
 
     return {
         "text": header,
@@ -60,6 +76,33 @@ def build_message(listing_name: str, listing_address: str, listing_url: str,
             {"type": "section", "text": {"type": "mrkdwn", "text": "\n".join(lines)}},
         ],
     }
+
+
+def build_portfolio_message(reports: list[ListingReport]) -> dict:
+    """One Slack message covering multiple listings — used by --all runs."""
+    has_warn = any(r.status in ("low", "high") for rep in reports for r in rep.results)
+    has_error = any(r.status == "error" for rep in reports for r in rep.results)
+    prefix = "[ALERT] " if has_warn else ("[ERROR] " if has_error else "")
+    when = reports[0].checkin if reports else ""
+    header = f"{prefix}Pricing check — {len(reports)} listing{'s' if len(reports) != 1 else ''}, check-in {when}"
+
+    blocks: list[dict] = [
+        {"type": "header", "text": {"type": "plain_text", "text": header}},
+    ]
+    for rep in reports:
+        body_lines = [f"<{rep.url}|{rep.name}>"]
+        if rep.address:
+            body_lines.append(rep.address)
+        body_lines.append("")
+        body_lines.extend(_format_results(rep.results))
+        blocks.append(
+            {"type": "section", "text": {"type": "mrkdwn", "text": "\n".join(body_lines)}}
+        )
+        blocks.append({"type": "divider"})
+    if blocks and blocks[-1].get("type") == "divider":
+        blocks.pop()
+
+    return {"text": header, "blocks": blocks}
 
 
 def send(webhook_url: str, payload: dict, *, timeout: float = 10.0) -> None:

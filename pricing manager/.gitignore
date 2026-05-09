@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 debug_*.html
+debug_*.json
 .venv/
+history.csv

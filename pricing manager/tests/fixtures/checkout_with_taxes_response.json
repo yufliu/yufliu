@@ -1,0 +1,41 @@
+{
+  "data": {
+    "presentation": {
+      "stayProductDetailPage": {
+        "sections": {
+          "sections": [
+            {
+              "section": {
+                "structuredDisplayPrice": {
+                  "primaryLine": {"discountedPrice": "$5,720"},
+                  "explanationData": {
+                    "priceDetails": [
+                      {
+                        "items": [
+                          {"description": "30 nights x $200", "priceString": "$6,000.00"},
+                          {"description": "Monthly discount", "priceString": "-$800.00"},
+                          {"description": "Cleaning fee", "priceString": "$150.00"},
+                          {"description": "Service fee", "priceString": "$520.00"},
+                          {"description": "Taxes", "priceString": "$370.00"}
+                        ]
+                      },
+                      {
+                        "items": [
+                          {
+                            "description": "",
+                            "priceString": "$5,720.00",
+                            "accessibilityLabel": "$5,720.00 total"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "data": {
+    "presentation": {
+      "stayProductDetailPage": {
+        "sections": {
+          "sections": [
+            {
+              "errors": null,
+              "section": {
+                "showPriceBreakdown": true,
+                "structuredDisplayPrice": {
+                  "primaryLine": {
+                    "accessibilityLabel": "$1,371 for 7 nights, originally $1,664",
+                    "discountedPrice": "$1,371",
+                    "originalPrice": "$1,664"
+                  },
+                  "explanationData": {
+                    "priceDetails": [
+                      {
+                        "items": [
+                          {"description": "7 nights x $237.63", "priceString": "$1,663.40"},
+                          {"description": "", "priceString": "-$292.68"}
+                        ]
+                      },
+                      {
+                        "items": [
+                          {
+                            "description": "",
+                            "priceString": "$1,370.72",
+                            "accessibilityLabel": "$1,370.72 total before taxes"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "displayPriceStyle": "TOTAL_ONLY"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

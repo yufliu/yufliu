@@ -8,17 +8,36 @@ on:
   workflow_dispatch:
     inputs:
       listing:
-        description: 'Listing key or address-ish query'
-        default: '217 cactus'
+        description: 'Listing key or address-ish query. Leave blank to run all listings.'
         required: false
       checkin:
         description: 'Check-in date (M/D/YYYY). Leave blank for today.'
         required: false
+  pull_request:
+    paths:
+      - 'pricing manager/**'
+      - '.github/workflows/pricing.yml'
 
 jobs:
-  check:
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: 'pricing manager'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Walker regression tests
+        run: python -m unittest tests.test_walker -v
+
+  check:
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: 'pricing manager'
@@ -53,11 +72,17 @@ jobs:
       - name: Run pricing check
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          LISTING: ${{ github.event.inputs.listing || '217 cactus' }}
+          LISTING: ${{ github.event.inputs.listing }}
           CHECKIN: ${{ github.event.inputs.checkin }}
         run: |
-          if [ -n "$CHECKIN" ]; then
-            python pricing_manager.py "$LISTING" "$CHECKIN" --always-notify
+          ARGS=()
+          if [ -n "$LISTING" ]; then
+            ARGS+=("$LISTING")
           else
-            python pricing_manager.py "$LISTING" --always-notify
+            ARGS+=("--all")
           fi
+          if [ -n "$CHECKIN" ]; then
+            ARGS+=("$CHECKIN")
+          fi
+          ARGS+=("--always-notify")
+          python pricing_manager.py "${ARGS[@]}"
