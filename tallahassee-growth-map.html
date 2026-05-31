@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tallahassee Growth Map — Path-of-Growth Investor Field Report</title>
+<meta name="description" content="An investor's field report on Tallahassee, FL neighborhoods in the path of growth: where to buy before prices rise, and the specific risks to watch. Every claim sourced." />
+
+<!-- Leaflet (no API key, OpenStreetMap tiles) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- Distinctive type pairing: Fraunces (editorial display) + IBM Plex Sans / Mono (analytical) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --paper:      #f4f1e9;
+    --paper-2:    #ebe6da;
+    --card:       #fbfaf6;
+    --ink:        #1b1d1a;
+    --ink-soft:   #4a4d46;
+    --ink-faint:  #74776e;
+    --rule:       #d8d2c4;
+    --rule-soft:  #e6e1d5;
+
+    --green:      #2f7d4f;   /* greenfield / appreciation play */
+    --green-bg:   #e9f1ea;
+    --blue:       #2a5fa6;   /* urban core / student-driven — caution */
+    --blue-bg:    #e7edf5;
+    --orange:     #c46a1d;   /* public-led reset — watch only */
+    --orange-bg:  #f6ece0;
+    --gray:       #7c7f78;   /* stalled / dead catalyst */
+    --gray-bg:    #eceae3;
+
+    --accent:     #b2451f;   /* signal red-clay accent */
+
+    --maxw: 1240px;
+    --shadow: 0 1px 0 var(--rule), 0 18px 40px -28px rgba(27,29,26,.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    /* subtle paper texture without external assets */
+    background-image:
+      radial-gradient(circle at 18% 12%, rgba(178,69,31,.035), transparent 38%),
+      radial-gradient(circle at 86% 0%, rgba(47,125,79,.04), transparent 40%);
+    background-attachment: fixed;
+  }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { color: var(--ink); }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  /* ---------- superscript source links ---------- */
+  sup.src { font-family: "IBM Plex Mono", monospace; font-size: .62em; font-weight: 600; line-height: 0; }
+  sup.src a {
+    color: var(--accent);
+    text-decoration: none;
+    padding: 0 .5px;
+    border-bottom: 1px dotted currentColor;
+  }
+  sup.src a:hover { color: var(--ink); background: #fffbe8; }
+
+  /* ===================== TOP BAR ===================== */
+  .topbar {
+    border-bottom: 1px solid var(--rule);
+    background: rgba(244,241,233,.82);
+    backdrop-filter: blur(6px);
+    position: sticky; top: 0; z-index: 600;
+  }
+  .topbar .wrap {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 11px; padding-bottom: 11px; gap: 14px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 600; letter-spacing: .01em; min-width: 0; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; transform: translateY(-1px); flex: 0 0 auto; }
+  .brand .mono { font-size: 13px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-soft); white-space: nowrap; }
+  .verified { font-size: 11.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .12em; text-align: right; flex: 0 0 auto; }
+  .verified b { color: var(--ink); font-weight: 600; }
+
+  /* ===================== HEADER ===================== */
+  header.hero { padding: 54px 0 34px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 18px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(2.4rem, 6.2vw, 4.4rem);
+    line-height: 1.02;
+    letter-spacing: -.015em;
+    margin: 0 0 22px;
+    max-width: 16ch;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .thesis {
+    font-size: clamp(1.05rem, 2.2vw, 1.32rem);
+    line-height: 1.5;
+    max-width: 60ch;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .thesis b { color: var(--ink); font-weight: 600; }
+
+  /* ===================== SNAPSHOT BAR ===================== */
+  .snapshot {
+    margin: 40px 0 14px;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    background: var(--card);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .snap-cell { padding: 20px 22px; border-right: 1px solid var(--rule-soft); }
+  .snap-cell:last-child { border-right: 0; }
+  .snap-label {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 9px;
+  }
+  .snap-value { font-family: "Fraunces", serif; font-size: clamp(1.5rem, 3vw, 2.05rem); font-weight: 600; line-height: 1; }
+  .snap-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 7px; }
+  .up { color: var(--green); font-weight: 600; }
+  .snap-note { font-size: 12px; color: var(--ink-faint); margin: 4px 2px 0; }
+
+  /* ===================== MAP ===================== */
+  .map-section { margin: 30px 0 8px; }
+  .map-frame {
+    position: relative;
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    background: var(--paper-2);
+  }
+  #map { width: 100%; height: 68vh; min-height: 460px; max-height: 760px; z-index: 1; }
+
+  .legend {
+    position: absolute; z-index: 500; left: 14px; bottom: 14px;
+    background: rgba(251,250,246,.95);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 13px 15px 12px;
+    box-shadow: 0 10px 30px -18px rgba(0,0,0,.5);
+    max-width: min(86vw, 320px);
+  }
+  .legend h4 {
+    margin: 0 0 10px; font-family: "IBM Plex Mono", monospace; font-size: 10.5px;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint);
+  }
+  .legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .legend li { display: flex; gap: 9px; align-items: flex-start; font-size: 12.5px; line-height: 1.32; }
+  .legend .swatch { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 13px; margin-top: 2px; border: 2px solid rgba(0,0,0,.18); }
+  .legend b { font-weight: 600; }
+  .legend .sw-green { background: var(--green); }
+  .legend .sw-blue { background: var(--blue); }
+  .legend .sw-orange { background: var(--orange); }
+  .legend .sw-gray { background: var(--gray); }
+
+  .map-caption { font-size: 12.5px; color: var(--ink-faint); margin: 10px 4px 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+  /* Leaflet popup theming */
+  .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 14px 40px -16px rgba(0,0,0,.6); }
+  .leaflet-popup-content { margin: 14px 16px; line-height: 1.5; width: 268px !important; }
+  .pop-type {
+    display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 9.5px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; margin-bottom: 8px;
+  }
+  .pop h3 { margin: 0 0 8px; font-family: "Fraunces", serif; font-size: 1.18rem; font-weight: 600; line-height: 1.1; }
+  .pop p { margin: 0 0 7px; font-size: 12.8px; color: var(--ink-soft); }
+  .pop .row { font-size: 12.5px; margin: 0 0 6px; }
+  .pop .row b { color: var(--ink); }
+  .pop .watch { background: #fdf3ee; border-left: 3px solid var(--accent); padding: 7px 9px; border-radius: 0 6px 6px 0; font-size: 12.3px; color: #6e3216; margin-top: 9px; }
+  .pop .watch b { color: var(--accent); }
+
+  /* custom marker pin */
+  .pin {
+    width: 26px; height: 26px; border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid rgba(255,255,255,.92);
+    box-shadow: 0 3px 8px -1px rgba(0,0,0,.5);
+    display: grid; place-items: center;
+  }
+  .pin span { transform: rotate(45deg); color: #fff; font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 11px; }
+  .pin.stalled { background-image: repeating-linear-gradient(45deg, var(--gray), var(--gray) 4px, #9a9d95 4px, #9a9d95 8px); }
+
+  /* ===================== SECTION HEADERS ===================== */
+  .sec-head { margin: 72px 0 26px; }
+  .sec-kicker {
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 12px;
+  }
+  .sec-head h2 {
+    font-family: "Fraunces", serif; font-weight: 600; letter-spacing: -.01em;
+    font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.05; margin: 0; max-width: 22ch;
+  }
+  .sec-head p { max-width: 64ch; color: var(--ink-soft); margin: 16px 0 0; font-size: 1.02rem; }
+
+  /* ===================== ZONE CARDS ===================== */
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+    border-top: 4px solid var(--gray);
+  }
+  .card.t-green  { border-top-color: var(--green); }
+  .card.t-blue   { border-top-color: var(--blue); }
+  .card.t-orange { border-top-color: var(--orange); }
+  .card.t-gray   { border-top-color: var(--gray); }
+
+  .card-map { height: 150px; background: var(--paper-2); position: relative; z-index: 0; }
+  .card-map .leaflet-control-container { display: none; } /* static thumbnail feel */
+
+  .card-body { padding: 20px 22px 22px; display: flex; flex-direction: column; flex: 1; }
+  .badge-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 12px; }
+  .badge {
+    font-family: "IBM Plex Mono", monospace; font-size: 9.5px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;
+  }
+  .b-green  { background: var(--green-bg);  color: #1f5736; }
+  .b-blue   { background: var(--blue-bg);   color: #1d4376; }
+  .b-orange { background: var(--orange-bg); color: #8a4710; }
+  .b-gray   { background: var(--gray-bg);   color: #565853; }
+  .zone-no { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink-faint); margin-left: auto; }
+
+  .card h3 { font-family: "Fraunces", serif; font-weight: 600; font-size: 1.5rem; line-height: 1.08; margin: 0 0 12px; letter-spacing: -.01em; }
+
+  .field { margin: 0 0 12px; }
+  .field .k {
+    font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 4px;
+  }
+  .field .v { font-size: 14.2px; color: var(--ink-soft); line-height: 1.55; }
+  .field .v b { color: var(--ink); font-weight: 600; }
+
+  .angle { background: #f3f6f1; border-radius: 10px; padding: 12px 14px; margin: 2px 0 12px; }
+  .card.t-blue .angle   { background: var(--blue-bg); }
+  .card.t-orange .angle { background: var(--orange-bg); }
+  .card.t-gray .angle   { background: var(--gray-bg); }
+  .angle .k { color: var(--ink-soft); }
+  .angle .v { color: var(--ink); }
+
+  .watch {
+    margin-top: auto;
+    background: #fdf2ec;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    font-size: 13.5px; line-height: 1.5; color: #6e3216;
+  }
+  .watch .k { color: var(--accent); font-weight: 700; }
+  .watch .k::before { content: "\26A0  "; }
+
+  .card-sources { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule-soft); }
+  .card-sources .k { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 7px; }
+  .card-sources a { display: inline-block; font-size: 12px; margin: 0 6px 5px 0; padding: 3px 9px; background: var(--paper); border: 1px solid var(--rule); border-radius: 20px; color: var(--ink-soft); text-decoration: none; }
+  .card-sources a:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===================== FRAMING ===================== */
+  .framing { background: var(--ink); color: #ece8dd; border-radius: 20px; padding: clamp(26px, 5vw, 56px); margin: 22px 0; }
+  .framing .sec-kicker { color: #e0a081; }
+  .framing h2 { font-family: "Fraunces", serif; color: #fbfaf6; font-weight: 600; font-size: clamp(1.7rem, 4vw, 2.5rem); margin: 0 0 10px; line-height: 1.06; }
+  .framing .lead { color: #c8c3b4; max-width: 66ch; font-size: 1.05rem; margin: 0 0 30px; }
+  .frame-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px 40px; }
+  .frame-item h4 { font-family: "Fraunces", serif; font-size: 1.18rem; font-weight: 600; margin: 0 0 8px; color: #fbfaf6; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .frame-item h4 .tag { font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: .1em; padding: 3px 7px; border-radius: 5px; text-transform: uppercase; }
+  .tag-g { background: rgba(47,125,79,.25); color: #8fd4a8; }
+  .tag-b { background: rgba(42,95,166,.28); color: #9bc0ee; }
+  .tag-o { background: rgba(196,106,29,.28); color: #f0b27e; }
+  .frame-item p { color: #bdb8a9; font-size: 14.5px; line-height: 1.6; margin: 0; }
+  .frame-item p b { color: #f3efe3; font-weight: 600; }
+
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 8px; }
+  .twocol .box { background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 26px 28px; box-shadow: var(--shadow); }
+  .twocol .box.spend { border-top: 4px solid var(--green); }
+  .twocol .box.flood { border-top: 4px solid var(--blue); }
+  .twocol .box h3 { font-family: "Fraunces", serif; font-size: 1.3rem; margin: 0 0 10px; font-weight: 600; }
+  .twocol .box p { font-size: 14.5px; color: var(--ink-soft); margin: 0 0 10px; }
+  .twocol .box p:last-child { margin-bottom: 0; }
+  .twocol .box .lab { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+  .spend .lab { color: var(--green); }
+  .flood .lab { color: var(--blue); }
+
+  /* ===================== FOOTER / SOURCES ===================== */
+  footer { border-top: 1px solid var(--rule); margin-top: 70px; padding: 46px 0 70px; }
+  footer .sec-kicker { margin-bottom: 14px; }
+  .method { max-width: 70ch; color: var(--ink-soft); font-size: 14.5px; margin: 0 0 30px; }
+  .src-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 36px; counter-reset: s; }
+  .src-list li { padding: 9px 0; border-bottom: 1px solid var(--rule-soft); font-size: 13px; display: flex; gap: 11px; align-items: baseline; }
+  .src-list li::before { counter-increment: s; content: counter(s, decimal-leading-zero); font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--accent); flex: 0 0 auto; }
+  .src-list a { color: var(--ink-soft); text-decoration: none; word-break: break-word; }
+  .src-list a:hover { color: var(--accent); }
+  .src-list .who { color: var(--ink); font-weight: 600; }
+  .colophon { margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--ink-faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .colophon .mono { letter-spacing: .04em; }
+
+  /* ===================== RESPONSIVE ===================== */
+  @media (max-width: 900px) {
+    .snapshot { grid-template-columns: repeat(2, 1fr); }
+    .snap-cell:nth-child(2) { border-right: 0; }
+    .snap-cell:nth-child(1), .snap-cell:nth-child(2) { border-bottom: 1px solid var(--rule-soft); }
+    .cards { grid-template-columns: 1fr; }
+    .frame-grid { grid-template-columns: 1fr; gap: 22px; }
+    .twocol { grid-template-columns: 1fr; }
+    .src-list { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .snapshot { grid-template-columns: 1fr; }
+    .snap-cell { border-right: 0 !important; border-bottom: 1px solid var(--rule-soft); }
+    .snap-cell:last-child { border-bottom: 0; }
+    #map { height: 64vh; min-height: 380px; }
+    header.hero { padding: 36px 0 24px; }
+    .topbar .brand .label { display: none; }
+    .wrap { padding: 0 16px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .card, .snapshot, .map-frame { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= TOP BAR ================= -->
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="mono">Path&nbsp;of&nbsp;Growth</span>
+      <span class="label" style="font-family:Fraunces,serif;font-weight:600;font-size:15px;">Tallahassee&nbsp;FL</span>
+    </div>
+    <div class="verified">Last verified <b>May&nbsp;31,&nbsp;2026</b></div>
+  </div>
+</div>
+
+<!-- ================= HEADER ================= -->
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Investor field report · single-family &amp; small multifamily</p>
+    <h1>Where the next dollar of growth is going — and where the <em>easy money is already gone.</em></h1>
+    <p class="thesis">
+      The appreciation play is <b>northeast</b>: the city is spending public infrastructure money to open Welaunee, a 10–15&nbsp;year, builder-dominated frontier.<sup class="src"><a href="https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year" target="_blank" rel="noopener">12</a></sup>
+      The <b>urban core</b> between FSU and FAMU is hot but crowded — private student housing is flooding in, which is a yield risk, not a gift, for a small landlord.<sup class="src"><a href="https://news.yahoo.com/large-student-housing-project-proposed-091602155.html" target="_blank" rel="noopener">6</a></sup>
+      And the downtown hotel catalyst everyone cites is <b>dead</b>.<sup class="src"><a href="https://www.aol.com/hotel-valencia-developer-pulls-deal-090750138.html" target="_blank" rel="noopener">11</a></sup>
+    </p>
+
+    <!-- ================= SNAPSHOT BAR ================= -->
+    <div class="snapshot">
+      <div class="snap-cell">
+        <div class="snap-label">MSA median · single-family</div>
+        <div class="snap-value">$346K</div>
+        <div class="snap-sub"><span class="up">▲ &gt;6% YoY</span> · Feb 2026<sup class="src"><a href="https://news.wfsu.org/wfsu-local-news/2026-03-26/a-tallahassee-real-estate-expert-says-the-local-housing-market-is-stable-rather-than-spectacular" target="_blank" rel="noopener">1</a></sup></div>
+      </div>
+      <div class="snap-cell">
+        <div class="snap-label">City of Tallahassee median</div>
+        <div class="snap-value">$306K</div>
+        <div class="snap-sub"><span class="up">▲ 21.7% YoY</span> · small, volatile sample<sup class="src"><a href="https://www.redfin.com/city/18046/FL/Tallahassee/housing-market" target="_blank" rel="noopener">2</a></sup></div>
+      </div>
+      <div class="snap-cell">
+        <div class="snap-label">Supply</div>
+        <div class="snap-value">Tight</div>
+        <div class="snap-sub">Low inventory vs. rest of FL is propping prices; ~84 days on market<sup class="src"><a href="https://news.wfsu.org/wfsu-local-news/2026-03-26/a-tallahassee-real-estate-expert-says-the-local-housing-market-is-stable-rather-than-spectacular" target="_blank" rel="noopener">1</a></sup><sup class="src"><a href="https://www.redfin.com/city/18046/FL/Tallahassee/housing-market" target="_blank" rel="noopener">2</a></sup></div>
+      </div>
+      <div class="snap-cell">
+        <div class="snap-label">Strongest in-town</div>
+        <div class="snap-value" style="font-size:clamp(1.3rem,2.6vw,1.7rem)">32308 · Golden Eagle</div>
+        <div class="snap-sub">Consistently strong segments; Leon Co. ≈70% of MSA sales = cleanest signal<sup class="src"><a href="https://www.manausa.com/blog/tallahassee-metro-real-estate-market-trends/" target="_blank" rel="noopener">3</a></sup><sup class="src"><a href="https://www.sunnyrealtors.com/news/tallahassee-real-estate-market-2026-from-golden-eagle-to-lake-talquin-what-metro-area-buyers-sellers-need-to-know/" target="_blank" rel="noopener">4</a></sup></div>
+      </div>
+    </div>
+    <p class="snap-note">Figures are MSA-/city-level medians from cited Q1 2026 reporting — directional context, not appraisal-grade comps. The MSA spans Leon, Wakulla, Gadsden &amp; Jefferson counties.</p>
+  </div>
+</header>
+
+<!-- ================= MAP ================= -->
+<section class="map-section">
+  <div class="wrap">
+    <div class="map-frame">
+      <div id="map" role="application" aria-label="Interactive map of Tallahassee growth zones"></div>
+      <div class="legend">
+        <h4>Zone type — read the color first</h4>
+        <ul>
+          <li><span class="swatch sw-green"></span><span><b>Greenfield (NE corridor)</b> — appreciation play, long horizon. <em>City is spending public infrastructure money.</em></span></li>
+          <li><span class="swatch sw-blue"></span><span><b>Urban core / student-driven</b> — caution; private supply headwind.</span></li>
+          <li><span class="swatch sw-orange"></span><span><b>Public-led reset (Southside)</b> — second-order play, watch only.</span></li>
+          <li><span class="swatch sw-gray"></span><span><b>Stalled</b> — catalyst fell through; no live thesis.</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="map-caption">
+      <span>Tap any marker for the full thesis.</span>
+      <span>Coordinates approximate — sited to the project / district, not a parcel.</span>
+      <span>Tiles © OpenStreetMap contributors.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ZONE CARDS ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">The zones · 01–06</p>
+      <h2>Six places, three different bets, one stall.</h2>
+      <p>Each card repeats the map popup in full, with sources. The distinction that matters: is the <b>city de-risking</b> the area with public infrastructure (good for you), or is <b>private student housing flooding in</b> (a competitor for your tenant)? They are not the same trade.</p>
+    </div>
+    <div class="cards" id="cards"><!-- injected by JS --></div>
+  </div>
+</section>
+
+<!-- ================= FRAMING / CAVEATS ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">How to read this map</p>
+      <h2>The honest version, since you already own here.</h2>
+      <p>You don't need the hype — you need to know which risk you're taking on. Four caveats do most of the work.</p>
+    </div>
+
+    <div class="framing">
+      <p class="sec-kicker">Mandatory watch-outs</p>
+      <h2>What can quietly cost you money.</h2>
+      <p class="lead">None of these kill a deal on their own. All of them change the price you should pay and the timeline you should underwrite.</p>
+      <div class="frame-grid">
+        <div class="frame-item">
+          <h4><span class="tag tag-b">Core</span> Student-housing oversupply</h4>
+          <p>A dozen-plus mixed-use / student projects are in permitting around FSU–FAMU, including HUB Tallahassee (391 units) and a 246-unit building at Railroad Square.<sup class="src"><a href="https://news.yahoo.com/large-student-housing-project-proposed-091602155.html" target="_blank" rel="noopener">6</a></sup><sup class="src"><a href="https://www.wctv.tv/2026/04/20/part-tallahassee-art-district-could-become-246-unit-apartment-building/" target="_blank" rel="noopener">9</a></sup> New "luxury" beds pull up nearby sale prices,<sup class="src"><a href="https://news.wfsu.org/wfsu-local-news/2026-03-26/a-tallahassee-real-estate-expert-says-the-local-housing-market-is-stable-rather-than-spectacular" target="_blank" rel="noopener">1</a></sup> but for a <b>small landlord they are direct competition for the student tenant</b> — expect concessions and softer rents as they deliver. This is a yield headwind, not an appreciation story.</p>
+        </div>
+        <div class="frame-item">
+          <h4><span class="tag tag-g">NE</span> A 10–15 year, builder's horizon</h4>
+          <p>The Welaunee "Heel" (GreenPointe, 900 acres) is a <b>10–15 year buildout</b>;<sup class="src"><a href="https://greenpointellc.com/news/vision-for-welaunee-heel-taking-shape/" target="_blank" rel="noopener">13</a></sup><sup class="src"><a href="https://theheeltallahassee.com/faqs/" target="_blank" rel="noopener">14</a></sup> the corridor is dominated by national/regional builders, not resale. The appreciation accrues to whoever holds raw land and entitlements early. As a buyer of finished product you arrive <b>after</b> the builder's margin — underwrite a long hold and don't expect to flip into a half-built community.</p>
+        </div>
+        <div class="frame-item">
+          <h4><span class="tag tag-b">Downtown</span> The hotel catalyst is dead</h4>
+          <p>The 225-room Hotel Valencia Capital City — the project repeatedly sold as downtown's catalyst — is <b>not happening</b>: the developer let the agreement with the city expire and pulled out.<sup class="src"><a href="https://www.aol.com/hotel-valencia-developer-pulls-deal-090750138.html" target="_blank" rel="noopener">11</a></sup> Do not let a listing agent price downtown adjacency off a hotel that no longer exists on paper.</p>
+        </div>
+        <div class="frame-item">
+          <h4><span class="tag tag-o">Subsidy</span> Flood/wetland &amp; the 2034 CRA sunset</h4>
+          <p>Several incentives are tied to the CRA, which <b>sunsets in 2034</b> — the Icon project's ~$1.4M in tax breaks is sized to that clock, and deals counting on CRA support need to clear before it.<sup class="src"><a href="https://www.wctv.tv/2026/04/16/crews-breaks-ground-nine-story-student-housing-complex-west-gaines-street-worth-over-100m/" target="_blank" rel="noopener">10</a></sup> Low-lying core/Southside parcels also carry flood and wetland exposure — the NE Gateway's own stormwater works exist precisely because this terrain doesn't drain itself.<sup class="src"><a href="https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year" target="_blank" rel="noopener">12</a></sup> Pull the flood map before you write an offer.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="twocol">
+      <div class="box spend">
+        <p class="lab">Bet A · public money</p>
+        <h3>"The city is spending here."</h3>
+        <p>Roads, stormwater, trails, parks, overpasses — Blueprint &amp; the NE Gateway are publicly funded and <b>de-risk private development</b> by making land buildable and accessible.<sup class="src"><a href="https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year" target="_blank" rel="noopener">12</a></sup> When the public sector commits infrastructure, the demand follows on its schedule. This is the <b>NE corridor (green)</b> and, in a different key, Southside's housing-authority reset (orange).<sup class="src"><a href="https://news.wfsu.org/wfsu-local-news/2022-10-25/the-redevelopment-of-southside-tallahassees-old-orange-avenue-apartments-site-is-officially-underway" target="_blank" rel="noopener">16</a></sup></p>
+      </div>
+      <div class="box flood">
+        <p class="lab">Bet B · private supply</p>
+        <h3>"Student housing is flooding in."</h3>
+        <p>Private capital chasing FSU/FAMU beds is a bet on <b>enrollment and rent</b>, with the supply spigot wide open. It can lift comps,<sup class="src"><a href="https://news.wfsu.org/wfsu-local-news/2026-03-26/a-tallahassee-real-estate-expert-says-the-local-housing-market-is-stable-rather-than-spectacular" target="_blank" rel="noopener">1</a></sup> but each new tower is competition. This is the <b>urban core (blue)</b>: buy for a clear value-add or land basis, not because "it's near campus." Your exit competes with purpose-built product that you can't match on amenities.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER / SOURCES ================= -->
+<footer>
+  <div class="wrap">
+    <p class="sec-kicker">Sources &amp; methodology</p>
+    <p class="method">
+      Every factual claim above traces to one of the URLs below, verified by web search on <b>May 31, 2026</b>. Market figures are MSA-/city-level medians from cited Q1 2026 reporting and are directional, not appraisal-grade. Map coordinates are sited to the named project or district and are approximate. Photos are intentionally omitted: rather than embed copyrighted news imagery, each zone card carries a live OpenStreetMap mini-map and links out to the original articles for renderings and photos. Links open in a new tab.
+    </p>
+    <ol class="src-list">
+      <li><a href="https://news.wfsu.org/wfsu-local-news/2026-03-26/a-tallahassee-real-estate-expert-says-the-local-housing-market-is-stable-rather-than-spectacular" target="_blank" rel="noopener"><span class="who">WFSU</span> — Market "stable rather than spectacular"; MSA ~$346K, low supply</a></li>
+      <li><a href="https://www.redfin.com/city/18046/FL/Tallahassee/housing-market" target="_blank" rel="noopener"><span class="who">Redfin</span> — City of Tallahassee housing market (~$306K, +21.7%, ~84 DOM)</a></li>
+      <li><a href="https://www.manausa.com/blog/tallahassee-metro-real-estate-market-trends/" target="_blank" rel="noopener"><span class="who">Manausa</span> — Tallahassee metro market trends; Leon ≈70% of sales</a></li>
+      <li><a href="https://www.sunnyrealtors.com/news/tallahassee-real-estate-market-2026-from-golden-eagle-to-lake-talquin-what-metro-area-buyers-sellers-need-to-know/" target="_blank" rel="noopener"><span class="who">Sunny Realtors</span> — 2026 metro overview; Golden Eagle / 32308 strength</a></li>
+      <li><a href="https://www.thefamuanonline.com/2024/11/19/historically-black-frenchtown-faces-development-and-gentrification-challenges/" target="_blank" rel="noopener"><span class="who">The Famuan</span> — Frenchtown development &amp; gentrification</a></li>
+      <li><a href="https://news.yahoo.com/large-student-housing-project-proposed-091602155.html" target="_blank" rel="noopener"><span class="who">Yahoo/Democrat</span> — HUB Tallahassee 391-unit project on Chubby's site</a></li>
+      <li><a href="https://www.talgov.com/uploads/public/documents/neighborhood/neighborhoodfirst/frenchtown_plan.pdf" target="_blank" rel="noopener"><span class="who">City of Tallahassee</span> — Frenchtown Neighborhood First plan (PDF)</a></li>
+      <li><a href="https://www.aol.com/railroad-square-owners-fate-tallahassee-160142596.html" target="_blank" rel="noopener"><span class="who">AOL/Democrat</span> — Railroad Square owners selling; city declined ROFR</a></li>
+      <li><a href="https://www.wctv.tv/2026/04/20/part-tallahassee-art-district-could-become-246-unit-apartment-building/" target="_blank" rel="noopener"><span class="who">WCTV</span> — 246-unit apartment permit at Railroad Square</a></li>
+      <li><a href="https://www.wctv.tv/2026/04/16/crews-breaks-ground-nine-story-student-housing-complex-west-gaines-street-worth-over-100m/" target="_blank" rel="noopener"><span class="who">WCTV</span> — Icon Tallahassee groundbreaking, West Gaines St; CRA sunset 2034</a></li>
+      <li><a href="https://www.aol.com/hotel-valencia-developer-pulls-deal-090750138.html" target="_blank" rel="noopener"><span class="who">AOL/Democrat</span> — Hotel Valencia developer pulls out of city deal</a></li>
+      <li><a href="https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year" target="_blank" rel="noopener"><span class="who">WTXL</span> — 16 Blueprint projects in 2026; NE Gateway / Welaunee Blvd; parks</a></li>
+      <li><a href="https://greenpointellc.com/news/vision-for-welaunee-heel-taking-shape/" target="_blank" rel="noopener"><span class="who">GreenPointe</span> — Vision for the Welaunee "Heel" (900 acres)</a></li>
+      <li><a href="https://theheeltallahassee.com/faqs/" target="_blank" rel="noopener"><span class="who">The Heel</span> — Welaunee Heel FAQs (10–15 year buildout)</a></li>
+      <li><a href="https://www.talchamber.com/chamber-conference-see-whats-coming-going-tallahassee-development-plans/" target="_blank" rel="noopener"><span class="who">Tallahassee Chamber</span> — Bannerman Rd widening + Publix at Bannerman</a></li>
+      <li><a href="https://news.wfsu.org/wfsu-local-news/2022-10-25/the-redevelopment-of-southside-tallahassees-old-orange-avenue-apartments-site-is-officially-underway" target="_blank" rel="noopener"><span class="who">WFSU</span> — Orange Avenue Apartments redevelopment underway</a></li>
+      <li><a href="https://www.tallha.org/orange-avenue" target="_blank" rel="noopener"><span class="who">Tallahassee Housing Authority</span> — Orange Avenue / Purpose Built Communities</a></li>
+      <li><a href="https://www.wtxl.com/northeast-tallahassee/talistrails-development-breaks-ground-on-900-acre-community-in-northeast-tallahassee" target="_blank" rel="noopener"><span class="who">WTXL</span> — TalisTrails (Welaunee Heel) breaks ground on 900-acre community</a></li>
+    </ol>
+    <div class="colophon">
+      <span class="mono">TALLAHASSEE GROWTH MAP · v1.0</span>
+      <span class="mono">Verified 2026-05-31 · Leaflet + OpenStreetMap · no API key</span>
+      <span>Not investment advice. Verify every figure against primary sources before you transact.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   SINGLE SOURCE OF TRUTH — drives map markers AND the cards.
+   ============================================================ */
+
+/* source-URL lookup (referenced by zone source chips below) */
+const SRC_URLS = {
+  1: "https://news.wfsu.org/wfsu-local-news/2026-03-26/a-tallahassee-real-estate-expert-says-the-local-housing-market-is-stable-rather-than-spectacular",
+  2: "https://www.redfin.com/city/18046/FL/Tallahassee/housing-market",
+  3: "https://www.manausa.com/blog/tallahassee-metro-real-estate-market-trends/",
+  4: "https://www.sunnyrealtors.com/news/tallahassee-real-estate-market-2026-from-golden-eagle-to-lake-talquin-what-metro-area-buyers-sellers-need-to-know/",
+  5: "https://www.thefamuanonline.com/2024/11/19/historically-black-frenchtown-faces-development-and-gentrification-challenges/",
+  6: "https://news.yahoo.com/large-student-housing-project-proposed-091602155.html",
+  7: "https://www.talgov.com/uploads/public/documents/neighborhood/neighborhoodfirst/frenchtown_plan.pdf",
+  8: "https://www.aol.com/railroad-square-owners-fate-tallahassee-160142596.html",
+  9: "https://www.wctv.tv/2026/04/20/part-tallahassee-art-district-could-become-246-unit-apartment-building/",
+  10: "https://www.wctv.tv/2026/04/16/crews-breaks-ground-nine-story-student-housing-complex-west-gaines-street-worth-over-100m/",
+  11: "https://www.aol.com/hotel-valencia-developer-pulls-deal-090750138.html",
+  12: "https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year",
+  13: "https://greenpointellc.com/news/vision-for-welaunee-heel-taking-shape/",
+  14: "https://theheeltallahassee.com/faqs/",
+  15: "https://www.talchamber.com/chamber-conference-see-whats-coming-going-tallahassee-development-plans/",
+  16: "https://news.wfsu.org/wfsu-local-news/2022-10-25/the-redevelopment-of-southside-tallahassees-old-orange-avenue-apartments-site-is-officially-underway",
+  17: "https://www.tallha.org/orange-avenue",
+  18: "https://www.wtxl.com/northeast-tallahassee/talistrails-development-breaks-ground-on-900-acre-community-in-northeast-tallahassee"
+};
+
+const COLORS = {
+  green:  { hex: "#2f7d4f", badge: "b-green",  card: "t-green",  label: "Greenfield · NE corridor" },
+  blue:   { hex: "#2a5fa6", badge: "b-blue",   card: "t-blue",   label: "Urban core · student-driven" },
+  orange: { hex: "#c46a1d", badge: "b-orange", card: "t-orange", label: "Public-led reset · Southside" },
+  gray:   { hex: "#7c7f78", badge: "b-gray",   card: "t-gray",   label: "Stalled · no live catalyst" }
+};
+
+const ZONES = [
+  {
+    no: "01", type: "blue", name: "Frenchtown",
+    coords: [30.4490, -84.2870],
+    where: "NW of downtown, between FSU &amp; FAMU",
+    whats: "Historically Black neighborhood now gentrifying via city-owned developments and a wave of private student housing — rising rents and loss of long-time staples.<sup class='src'><a href='https://www.thefamuanonline.com/2024/11/19/historically-black-frenchtown-faces-development-and-gentrification-challenges/' target='_blank' rel='noopener'>5</a></sup>",
+    projects: "<b>HUB Tallahassee</b> (Peerless Development) on the former Chubby's site: 7-story, ~500,000 sq ft, <b>391 units</b>, 30,000+ sq ft retail, garage, on 3.83 acres at W. Tennessee / N. Macomb / W. Virginia — one of 12+ mixed-use projects in permitting.<sup class='src'><a href='https://news.yahoo.com/large-student-housing-project-proposed-091602155.html' target='_blank' rel='noopener'>6</a></sup> City response: CRA-funded <b>Frenchtown Neighborhood First</b> plan — affordable infill + home-repair funds to offset displacement.<sup class='src'><a href='https://www.talgov.com/uploads/public/documents/neighborhood/neighborhoodfirst/frenchtown_plan.pdf' target='_blank' rel='noopener'>7</a></sup>",
+    timeline: "Active permitting now; multi-year delivery.",
+    angle: "A land-basis / value-add play, not a buy-and-hold-for-rent play. If you buy, buy for the dirt and the entitlement trend — and assume you're competing with new product for the student tenant.",
+    watch: "You're buying into a <b>gentrification flashpoint</b>: displacement politics, possible tenant-protection / CRA conditions, and direct rent competition from 391+ new beds. Goodwill matters here — you already operate locally.",
+    sources: [["The Famuan",5],["Yahoo/Democrat",6],["City plan (PDF)",7]]
+  },
+  {
+    no: "02", type: "blue", name: "Railroad Square Art District",
+    coords: [30.4267, -84.2876],
+    where: "661 Railroad Ave, between FSU &amp; FAMU",
+    whats: "10-acre privately owned arts district by FAMU Way Park / Capital Cascades Trail, damaged by the 2024 tornadoes. The Kaye family owners are <b>selling</b>; the city <b>declined</b> its right of first refusal.<sup class='src'><a href='https://www.aol.com/railroad-square-owners-fate-tallahassee-160142596.html' target='_blank' rel='noopener'>8</a></sup>",
+    projects: "April 2026 permit: a <b>5-story, 246-unit</b> multifamily across 17 parcels west of Railroad Ave, north of FAMU Way (applicant Moore Bass Consulting).<sup class='src'><a href='https://www.wctv.tv/2026/04/20/part-tallahassee-art-district-could-become-246-unit-apartment-building/' target='_blank' rel='noopener'>9</a></sup>",
+    timeline: "Sale in motion; 246-unit project in permitting (2026).",
+    angle: "Speculative — this is an ownership-transition story. Upside if the arts identity survives redevelopment and the trail-adjacency holds; the trade is on what replaces it, not today's use.",
+    watch: "Private, for-sale, <b>tornado-damaged</b>, and the <b>city passed on buying it</b> — no public backstop. A 246-unit slab could erase the district's character (and its rent premium) rather than amplify it.",
+    sources: [["AOL/Democrat",8],["WCTV",9]]
+  },
+  {
+    no: "03", type: "blue", name: "West Gaines / Stadium — Icon",
+    coords: [30.4388, -84.3010],
+    where: "730 W. Gaines St, near FSU / College Town &amp; Doak Campbell",
+    whats: "<b>Icon Tallahassee</b> under construction: a 9-story, <b>804-bed</b> student complex; ~$100M; developer Park 7 Group, GC Hoar Construction; rooftop deck with stadium views.<sup class='src'><a href='https://www.wctv.tv/2026/04/16/crews-breaks-ground-nine-story-student-housing-complex-west-gaines-street-worth-over-100m/' target='_blank' rel='noopener'>10</a></sup>",
+    projects: "DRC granted a $238K tax break, ~$1.4M total via the CRA before its <b>2034 sunset</b>; targeted completion <b>fall 2028</b>.<sup class='src'><a href='https://www.wctv.tv/2026/04/16/crews-breaks-ground-nine-story-student-housing-complex-west-gaines-street-worth-over-100m/' target='_blank' rel='noopener'>10</a></sup>",
+    timeline: "Under construction; delivers fall 2028.",
+    angle: "Mostly a comp-setter for you, not a deal. It validates land values along West Gaines, but the bed supply lands squarely on the student-rental segment.",
+    watch: "<b>804 new beds</b> in one building is exactly the supply that pressures small-landlord rents nearby. Incentives ride the <b>CRA clock to 2034</b> — don't underwrite future subsidy you can't lock before then.",
+    sources: [["WCTV",10]]
+  },
+  {
+    no: "04", type: "gray", name: "Downtown (Gaines / Duval)",
+    coords: [30.4380, -84.2810],
+    where: "Former Hotel Valencia site, near Gaines &amp; Duval",
+    whats: "The downtown catalyst that gets quoted the most is <b>not happening</b>. The 225-room Hotel Valencia Capital City's developer (Valencia Development Corp) <b>let the agreement with the city expire and pulled out</b>.<sup class='src'><a href='https://www.aol.com/hotel-valencia-developer-pulls-deal-090750138.html' target='_blank' rel='noopener'>11</a></sup>",
+    projects: "<b>Dead deal.</b> No live luxury-hotel catalyst at this site as of this report.<sup class='src'><a href='https://www.aol.com/hotel-valencia-developer-pulls-deal-090750138.html' target='_blank' rel='noopener'>11</a></sup>",
+    timeline: "Agreement expired; no current timeline.",
+    angle: "Watch only. Don't pay a premium for “next to the new hotel” adjacency — there is no new hotel. Re-rate this block only if a replacement deal is actually executed.",
+    watch: "If a broker or pro-forma still prices in the <b>Hotel Valencia</b> as a coming amenity, the analysis is stale. Treat downtown demand as flat until a real catalyst is signed.",
+    sources: [["AOL/Democrat",11]]
+  },
+  {
+    no: "05", type: "green", name: "Northeast Corridor — Welaunee",
+    coords: [30.4900, -84.2050],
+    where: "North of I-10 / Mahan; Canopy, the Heel, Bannerman",
+    extraMarkers: [
+      { coords: [30.5030, -84.2110], name: "Canopy — Welaunee “Toe”" },
+      { coords: [30.5560, -84.2640], name: "Bannerman Rd / Bull Headley" }
+    ],
+    whats: "This is the appreciation play, and it's <b>public-money-led</b>: of 16 Blueprint projects under construction in 2026, four are in NE Tallahassee.<sup class='src'><a href='https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year' target='_blank' rel='noopener'>12</a></sup> The <b>NE Gateway / Welaunee Blvd</b> connector off I-10/Mahan (sidewalks, stormwater, multi-use path ~Nov 2026; overpass bridge ~summer 2027) unlocks the Welaunee land.<sup class='src'><a href='https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year' target='_blank' rel='noopener'>12</a></sup>",
+    projects: "<b>Welaunee</b> master development: the <b>“Toe” = Canopy</b> (~500-acre community, Premier Homes, selling now); the <b>“Heel” = GreenPointe</b>, 900 acres of mixed-use (single-family at varied price points, apartments, commercial) north of I-10/Mahan, a <b>10–15 year buildout</b>; the “Arch” is a future phase.<sup class='src'><a href='https://greenpointellc.com/news/vision-for-welaunee-heel-taking-shape/' target='_blank' rel='noopener'>13</a></sup><sup class='src'><a href='https://theheeltallahassee.com/faqs/' target='_blank' rel='noopener'>14</a></sup> <b>Update:</b> the Heel is now branded <b>TalisTrails</b> and has <b>broken ground</b> — a ~$51M Phase 1 with ~1,500 homes + 600 apartments planned.<sup class='src'><a href='https://www.wtxl.com/northeast-tallahassee/talistrails-development-breaks-ground-on-900-acre-community-in-northeast-tallahassee' target='_blank' rel='noopener'>18</a></sup> Plus <b>Bannerman Rd widening + Publix at Bannerman</b> (commercial + residential at Bannerman / Bull Headley),<sup class='src'><a href='https://www.talchamber.com/chamber-conference-see-whats-coming-going-tallahassee-development-plans/' target='_blank' rel='noopener'>15</a></sup> and the Market District park + Northeast Park (ballfields) both ~summer 2027.<sup class='src'><a href='https://www.wtxl.com/northeast-tallahassee/16-blueprint-projects-to-be-under-construction-in-2026-see-how-ne-tallahassee-projects-advanced-this-year' target='_blank' rel='noopener'>12</a></sup>",
+    timeline: "Infrastructure 2026–27; community buildout 10–15 years.",
+    angle: "The real appreciation bet — get in early near the new connector / Bannerman node and hold. Finished-product buyers should target Canopy (selling now) or land/lots positioned ahead of the overpass and park deliveries.",
+    watch: "It's a <b>10–15 year, builder-dominated horizon</b> — value accrues to early land/entitlement holders, and you buy <em>after</em> the builder margin. This is a patient-capital, long-hold trade, not a flip.",
+    sources: [["WTXL",12],["GreenPointe",13],["The Heel",14],["Chamber",15],["TalisTrails",18]]
+  },
+  {
+    no: "06", type: "orange", name: "Southside — Orange Avenue",
+    coords: [30.4139, -84.2691],
+    where: "2710 Country Club Dr (old Orange Ave Apartments), Southside",
+    whats: "A <b>public-led reset</b>: the old Orange Avenue Apartments are being redeveloped into a <b>Purpose Built Communities</b> mixed-income neighborhood, led by the Tallahassee Housing Authority.<sup class='src'><a href='https://news.wfsu.org/wfsu-local-news/2022-10-25/the-redevelopment-of-southside-tallahassees-old-orange-avenue-apartments-site-is-officially-underway' target='_blank' rel='noopener'>16</a></sup>",
+    projects: "~$83M total, phased; early phases completed / leasing in 2024.<sup class='src'><a href='https://www.tallha.org/orange-avenue' target='_blank' rel='noopener'>17</a></sup>",
+    timeline: "Phased; early phases delivered 2024, more to come.",
+    angle: "A second-order play. Public investment can lift surrounding Southside values over time, but you're betting on spillover, not on buying the redevelopment itself. Watch how phases lease before committing nearby.",
+    watch: "Watch only. Mixed-income, housing-authority-led projects re-rate a neighborhood <b>slowly and unevenly</b>; nearby low-lying parcels also carry flood/wetland exposure. Don't front-run the spillover before later phases prove out.",
+    sources: [["WFSU",16],["TallHA",17]]
+  }
+];
+
+/* ---------- MAIN MAP ---------- */
+const map = L.map("map", { scrollWheelZoom: false, zoomControl: true });
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+function pinIcon(type) {
+  const c = COLORS[type].hex;
+  const stalled = type === "gray" ? " stalled" : "";
+  const bg = type === "gray" ? "" : "background:" + c + ";";
+  const glyph = type === "gray" ? "✕" : "●";
+  return L.divIcon({
+    className: "",
+    html: '<div class="pin' + stalled + '" style="' + bg + '"><span>' + glyph + '</span></div>',
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -26]
+  });
+}
+
+const allPoints = [];
+ZONES.forEach(function (z) {
+  const c = COLORS[z.type];
+  const popup =
+    '<div class="pop">' +
+      '<span class="pop-type" style="background:' + c.hex + '1a;color:' + c.hex + '">' + c.label + '</span>' +
+      '<h3>' + z.no + ' · ' + z.name + '</h3>' +
+      '<p>' + z.whats + '</p>' +
+      '<div class="row"><b>Key project(s):</b> ' + z.projects + '</div>' +
+      '<div class="row"><b>Timeline:</b> ' + z.timeline + '</div>' +
+      '<div class="row"><b>Investor angle:</b> ' + z.angle + '</div>' +
+      '<div class="watch"><b>Watch out for:</b> ' + z.watch + '</div>' +
+    '</div>';
+  L.marker(z.coords, { icon: pinIcon(z.type), title: z.name })
+    .addTo(map).bindPopup(popup, { maxWidth: 300 });
+  allPoints.push(z.coords);
+
+  (z.extraMarkers || []).forEach(function (m) {
+    L.marker(m.coords, { icon: pinIcon(z.type), title: m.name })
+      .addTo(map)
+      .bindPopup('<div class="pop"><span class="pop-type" style="background:' + c.hex + '1a;color:' + c.hex + '">' + c.label + '</span><h3>' + m.name + '</h3><p>Part of the ' + z.name + ' corridor — see card ' + z.no + ' below for the full thesis.</p></div>', { maxWidth: 260 });
+    allPoints.push(m.coords);
+  });
+});
+
+map.fitBounds(L.latLngBounds(allPoints).pad(0.18));
+
+/* ---------- ZONE CARDS ---------- */
+const cardsEl = document.getElementById("cards");
+ZONES.forEach(function (z) {
+  const c = COLORS[z.type];
+  const srcLinks = z.sources.map(function (pair) {
+    const url = SRC_URLS[pair[1]];
+    return '<a href="' + url + '" target="_blank" rel="noopener">' + pair[0] + ' ↗</a>';
+  }).join("");
+  const el = document.createElement("article");
+  el.className = "card " + c.card;
+  el.innerHTML =
+    '<div class="card-map" data-lat="' + z.coords[0] + '" data-lng="' + z.coords[1] + '" data-type="' + z.type + '"></div>' +
+    '<div class="card-body">' +
+      '<div class="badge-row">' +
+        '<span class="badge ' + c.badge + '">' + c.label + '</span>' +
+        '<span class="zone-no">ZONE ' + z.no + '</span>' +
+      '</div>' +
+      '<h3>' + z.name + '</h3>' +
+      '<div class="field"><span class="k">Location</span><span class="v">' + z.where + '</span></div>' +
+      '<div class="field"><span class="k">What’s happening</span><span class="v">' + z.whats + '</span></div>' +
+      '<div class="field"><span class="k">Key project(s)</span><span class="v">' + z.projects + '</span></div>' +
+      '<div class="field"><span class="k">Timeline</span><span class="v">' + z.timeline + '</span></div>' +
+      '<div class="angle"><span class="k">Investor angle</span><div class="v">' + z.angle + '</div></div>' +
+      '<div class="watch"><span class="k">Watch out for</span> ' + z.watch + '</div>' +
+      '<div class="card-sources"><span class="k">Sources</span>' + srcLinks + '</div>' +
+    '</div>';
+  cardsEl.appendChild(el);
+});
+
+/* ---------- LAZY MINI-MAPS PER CARD (static-feel OSM thumbnails) ---------- */
+const io = new IntersectionObserver(function (entries, obs) {
+  entries.forEach(function (e) {
+    if (!e.isIntersecting) return;
+    const div = e.target;
+    obs.unobserve(div);
+    const lat = parseFloat(div.dataset.lat), lng = parseFloat(div.dataset.lng);
+    const type = div.dataset.type;
+    const mini = L.map(div, {
+      zoomControl: false, attributionControl: false, dragging: false,
+      scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false,
+      keyboard: false, touchZoom: false, tap: false
+    }).setView([lat, lng], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(mini);
+    L.marker([lat, lng], { icon: pinIcon(type), interactive: false }).addTo(mini);
+    setTimeout(function () { mini.invalidateSize(); }, 60);
+  });
+}, { rootMargin: "200px" });
+document.querySelectorAll(".card-map").forEach(function (d) { io.observe(d); });
+</script>
+</body>
+</html>
