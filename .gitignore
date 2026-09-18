@@ -1,0 +1,5 @@
+# Yelp HAR captures contain live session cookies - never commit them.
+*.har
+
+# Local review drafts
+drafts/
