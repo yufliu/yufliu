@@ -21,8 +21,10 @@ Stars:      5
 **Food** — uni butter far richer than expected; duck cooked perfectly with
 crisp skin; shrimp toast fine but unmemorable.
 **Service** — tasting menu well paced, never rushed, about 2.5 hours.
-**Shout-out** — server Daniel walked through every course without lecturing.
+**Vibe** — small room, roughly 30 seats, dim. Quiet enough to actually talk.
+Skews date-night, everyone a little dressed up.
 **Missing** — anniversary dinner, booked six weeks ahead, street parking rough.
+Server Daniel walked through every course without lecturing.
 
 ## Draft
 
@@ -34,24 +36,29 @@ crisp skin; shrimp toast fine but unmemorable.
 > still pink, no gap between the two. The shrimp toast was the one course I'd
 > skip; perfectly fine, just didn't stand up next to everything around it.
 >
-> Two and a half hours for the tasting menu and it never dragged. Daniel walked
-> us through every course without turning it into a lecture, which is harder
-> than it sounds at this level.
+> It's a small room, maybe thirty seats, dim and quiet enough that you can
+> actually hold a conversation through a two-and-a-half hour tasting menu. It
+> never dragged. Daniel walked us through every course without turning it into
+> a lecture, which is harder than it sounds at this level.
 >
 > Booked six weeks out for our anniversary and it held up to the wait. Budget
 > time for street parking.
 
-**128 words.** Opens on the dish. Names every item with one concrete detail.
-Includes the honest miss even at 5 stars. Server credited by first name only.
+**147 words.** Opens on the dish. Names every item with one concrete detail.
+Includes the honest miss even at 5 stars. Vibe described in plannable terms
+(seat count, noise) rather than adjectives. Server credited by first name only.
 No emoji, no clichés, no restatement of the rating.
 
 ## What to react to
 
 Each of these is a rule that gets locked in or thrown out based on the answer:
 
-1. **Too long or about right?** Target is currently 80–150 words.
+1. **Too long or about right?** Target is currently 80–150 words; this sits at
+   the top of that range.
 2. **Does naming a weak dish inside a 5-star review feel right**, or does a 5
    mean unreserved?
 3. **Is "still thinking about a week later" a natural opener**, or too writerly?
 4. **Emoji** — the profile assumes none in review bodies. Correct?
 5. **"I" vs "we"** — this mixes both. Which is the real habit?
+6. **Vibe placement** — it's merged with service here rather than given its own
+   paragraph. Separate them?

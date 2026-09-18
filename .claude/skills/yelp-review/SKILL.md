@@ -1,6 +1,6 @@
 ---
 name: yelp-review
-description: Draft a Yelp review in Yu's voice from a short intake (restaurant, city, email, items, stars), then ask targeted follow-ups about food, service, and shout-outs before producing a paste-ready draft. Use when the user says they just ate somewhere, wants to "write a Yelp review", "review this place", or drops a restaurant name plus a star rating.
+description: Draft a Yelp review in Yu's voice from a short intake (restaurant, city, email, items, stars), then ask targeted follow-ups about food, service, and vibe before producing a paste-ready draft. Use when the user says they just ate somewhere, wants to "write a Yelp review", "review this place", or drops a restaurant name plus a star rating.
 ---
 
 # Yelp Review Drafter
@@ -60,12 +60,14 @@ writing about*. Ask these three, in one message, after intake:
    that didn't land?
 2. **Service** — pace, attentiveness, how a problem was handled, wait time vs.
    what was quoted?
-3. **Shout-out / tribute** — anyone or anything specific worth crediting by
-   name? A server, the chef, a regular who runs the front, a dish named after
-   someone, a room that's clearly somebody's life's work?
+3. **Vibe** — what was the room actually like? Noise level, lighting, how
+   packed it was, the crowd, music, decor, whether it felt like a date spot or
+   a get-in-and-out spot. This is the section that tells a reader whether the
+   place fits the night they're planning.
 
 Then one open catch-all: **"anything I'm missing?"** — occasion, who was there,
-whether it's a first visit or a tenth, parking, noise, wait for a table.
+whether it's a first visit or a tenth, parking, wait for a table, and anyone
+worth crediting by name (a server who made the meal, the chef, the owner).
 
 Accept "nothing" as an answer. A review with two real details beats one padded
 with four invented ones. **Never fabricate a detail to fill a section** — if
@@ -122,8 +124,9 @@ different privacy surfaces.
 Useful, with permission:
 
 - **Yelp's own "Thanks for your review" emails** — these quote past reviews
-  back in full, and are the best available source of genuine voice samples
-  (see the calibration procedure in `voice-profile.md`).
+  back in full. This is the email field's main purpose: a fallback source of
+  genuine voice samples when the profile page can't be read (see the
+  calibration procedure in `voice-profile.md`).
 - **The reservation or receipt** — confirms date, party size, and the actual
   items ordered, so the draft doesn't misremember the meal.
 

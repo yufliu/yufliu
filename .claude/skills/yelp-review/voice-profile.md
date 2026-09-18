@@ -36,7 +36,7 @@ several dishes worth naming separately. Roughly:
 
 1. The hook — the standout, or the honest headline if the rating is low
 2. The items — named specifically, with one concrete detail each
-3. Service and atmosphere — only if there's something real to say
+3. Service and vibe — only if there's something real to say
 4. The verdict — would you return, what would you order next time, who to bring
 
 Skip any section with nothing genuine behind it.
@@ -67,25 +67,43 @@ Specific, fair, aimed at the food or the process — never at a person. "The
 rice was undercooked and they didn't check back" is useful to readers and
 survivable for the restaurant. "The server was an idiot" is neither.
 
+### Vibe
+
+Describe the room in terms a reader can plan around, not adjectives. The job of
+this section is to answer "does this place fit the night I have in mind?"
+
+- "Loud enough that we gave up on conversation by the second course" over
+  "lively atmosphere"
+- "Twelve seats, all facing the pass" over "intimate setting"
+- "Half the room was in gym clothes" over "casual vibe"
+
+Cut it entirely when the room was unremarkable. A forced vibe paragraph is
+obvious filler.
+
 ### Shout-outs
 
 When a specific person made the meal, name them the way a regular would:
-"Ask for Marco, he actually knows the menu." Only if the user supplied the
-name — never invent one, and don't add a last name.
+"Ask for Marco, he actually knows the menu." Only if the name was supplied —
+never invent one, and never add a last name.
 
 ## Calibration
 
 Replace the guesswork above with real patterns:
 
-**1. Gather 5–10 real reviews.** Any of these work:
+**1. Gather 5–10 real reviews**, in this order of preference:
 
-- Yu's Yelp profile page (`yelp.com/user_details?userid=...`) — copy the text
-  of recent reviews
-- Yelp's **"Thanks for your review"** confirmation emails, which quote the full
-  review back — searchable in the mailbox given at intake, with permission
-- Instagram captions from [@yumilyeats](https://www.instagram.com/yumilyeats/)
-  — a weaker signal, since caption voice and review voice differ, but better
-  than nothing
+- **The Yelp profile page** (`yelp.com/user_details?userid=...`) — the primary
+  source. Note that Yelp blocks most automated fetching, so an attempt to read
+  the page may come back empty or as a challenge page. When that happens, don't
+  retry it repeatedly: ask for the review text to be pasted instead. Pasting
+  five reviews takes about two minutes and is the highest-fidelity input
+  available.
+- **Yelp's "Thanks for your review" confirmation emails**, which quote the full
+  review back — searchable in the mailbox given at intake, with permission.
+  This is the fallback when the profile page can't be read.
+- **Instagram captions** from [@yumilyeats](https://www.instagram.com/yumilyeats/)
+  — the weakest signal, since caption voice and review voice differ. Use only
+  to break ties, never as the sole basis.
 
 **2. Extract, don't summarize.** For each sample, record:
 
